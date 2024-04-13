@@ -22,6 +22,8 @@ rand = "0.6"
 hex-literal = "0.2"
 clap = { version = "2.33", features = ["wrap_help"]}
 net2 = "^0.2.36"
+signature = "2.3.0-pre.3"
+sha2 = "0.11.0-pre.3"
 
 [features]
 default = []

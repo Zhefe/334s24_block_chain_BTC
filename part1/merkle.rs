@@ -16,12 +16,21 @@ pub struct MerkleTree {
 
 /// Given the hash of the left and right nodes, compute the hash of the parent node.
 fn hash_children(left: &H256, right: &H256) -> H256 {
-    unimplemented!();
+    let mut hasher = Sha256::new();
+    hasher.update(left);
+    hasher.update(right);
+
+    let result = hasher.finalize();
+    result
 }
 
 /// Duplicate the last node in `nodes` to make its length even.
 fn duplicate_last_node(nodes: &mut Vec<Option<MerkleTreeNode>>) {
-    unimplemented!();
+    if nodes.len() % 2 != 0 {
+        if let Some(last_node) = nodes.last().cloned() {
+            nodes.push(last_node);
+        }
+    }
 }
 
 impl MerkleTree {
@@ -60,13 +69,12 @@ impl MerkleTree {
     }
 
     pub fn root(&self) -> H256 {
-        unimplemented!()
+        self.root.hash
     }
 
     /// Returns the Merkle Proof of data at index i
     pub fn proof(&self, index: usize) -> Vec<H256> {
-        unimplemented!()
-    }
+
 }
 
 /// Verify that the datum hash with a vector of proofs will produce the Merkle root. Also need the
