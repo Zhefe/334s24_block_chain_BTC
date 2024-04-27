@@ -18,20 +18,8 @@ pub struct MerkleTree {
 
 /// Given the hash of the left and right nodes, compute the hash of the parent node.
 fn hash_children(left: &H256, right: &H256) -> H256 {
-    // Convert both left and right H256 into byte arrays
-    let left_bytes: [u8; 32] = (*left).into();
-    let right_bytes: [u8; 32] = (*right).into();
-
-    // Concatenate the two arrays
-    let mut concatenated = [0u8; 64];
-    concatenated[..32].copy_from_slice(&left_bytes);
-    concatenated[32..].copy_from_slice(&right_bytes);
-
-    // Hash the concatenated array
-    let hash_result = digest(&SHA256, &concatenated);
-
-    // Convert the digest result to H256
-    H256::from(hash_result)
+    let concatenated = [left.as_ref(), right.as_ref()].concat();
+    ring::digest::digest(&ring::digest::SHA256, &concatenated).into()
 }
 
 /// Duplicate the last node in `nodes` to make its length even.
@@ -84,30 +72,28 @@ impl MerkleTree {
 
     /// Returns the Merkle Proof of data at index i
     pub fn proof(&self, index: usize) -> Vec<H256> {
+        let mut binary_index = Vec::new();
+        let mut index = index;
+        for _ in 0..(self.level_count - 1) {
+            binary_index.push(index % 2);
+            index /= 2;
+        }
         let mut node = &self.root;
-
-        let mut layer:usize = 1;
-        let i = index + 2;
-
-        while (1 << layer) < i {
-            layer += 1;
-        }
-        println!("target in layer{}", layer);
-        let mut sort = i - (1 << (layer-1));
-        while layer >= 2 {
-            if sort <= (1 << (layer-2)) {
-                println!("left");
-                layer -= 1;
-                node = node.left.as_ref().unwrap()
-            }
-            else {
-                println!("right");
-                sort = sort - (1 << (layer-2));
-                layer -= 1;
-                node = node.right.as_ref().unwrap()
+        let mut proof_rev = Vec::new();
+        for bit in binary_index.iter().rev() { // we traverse from root, thus in reverse order:
+            match bit {
+                0 => { // data is on the left, sibling on the right:
+                    proof_rev.push(node.right.as_ref().unwrap().hash);
+                    node = node.left.as_ref().unwrap();
+                },
+                1 => { // data is on the right, sibling on the left:
+                    proof_rev.push(node.left.as_ref().unwrap().hash);
+                    node = node.right.as_ref().unwrap();
+                },
+                _ => unreachable!(),
             }
         }
-        vec![node.hash]
+        proof_rev.into_iter().rev().collect()
     }
 }
 
